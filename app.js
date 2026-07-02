@@ -3,45 +3,55 @@ const input = document.getElementById("query");
 const statusEl = document.getElementById("status");
 const resultsEl = document.getElementById("results");
 
-form.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const query = input.value.trim();
-  if (!query) return;
+const MAX_RESULTS = 3;
+const MAX_SCORE = 0.5; // Fuse score: 0 = match parfait, 1 = aucun rapport
 
-  setStatus("Recherche en cours...");
-  resultsEl.innerHTML = "";
+let fuse = null;
 
+async function init() {
+  setStatus("Chargement de la base...");
   try {
-    const response = await fetch("/api/search", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query }),
+    const response = await fetch("data/posts.json");
+    const { posts } = await response.json();
+    const indexed = posts.map((post) => ({ ...post, search_caption: normalize(post.caption) }));
+    fuse = new Fuse(indexed, {
+      keys: ["search_caption"],
+      includeScore: true,
+      threshold: MAX_SCORE,
+      ignoreLocation: true,
     });
-
-    if (!response.ok) {
-      throw new Error(`Erreur serveur (${response.status})`);
-    }
-
-    const { results } = await response.json();
-    renderResults(results);
+    setStatus(posts.length === 0 ? "Base vide pour l'instant — lance une mise à jour." : "");
   } catch (error) {
-    setStatus("Une erreur est survenue. Réessaie dans un instant.");
+    setStatus("Impossible de charger la base de posts.");
     console.error(error);
   }
+}
+
+form.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const query = input.value.trim();
+  if (!query || !fuse) return;
+
+  const matches = fuse
+    .search(normalize(query))
+    .filter((match) => match.score <= MAX_SCORE)
+    .slice(0, MAX_RESULTS);
+  renderResults(matches.map((match) => match.item));
 });
 
-function renderResults(results) {
-  if (!results || results.length === 0) {
+function renderResults(posts) {
+  if (!posts || posts.length === 0) {
     setStatus("Rien trouvé — ce sujet n'a peut-être pas encore été couvert.");
+    resultsEl.innerHTML = "";
     return;
   }
 
   setStatus("");
-  resultsEl.innerHTML = results.map(cardHtml).join("");
+  resultsEl.innerHTML = posts.map(cardHtml).join("");
 }
 
-function cardHtml(result) {
-  const thumb = result.thumbnails?.[0]?.url;
+function cardHtml(post) {
+  const thumb = post.thumbnails?.[0]?.url;
   const image = thumb
     ? `<img src="${escapeHtml(thumb)}" alt="" loading="lazy" />`
     : `<div class="thumb-placeholder"></div>`;
@@ -50,13 +60,18 @@ function cardHtml(result) {
     <article class="card">
       ${image}
       <div class="card-body">
-        <p class="caption">${escapeHtml(result.caption_excerpt)}</p>
-        <a class="permalink" href="${escapeHtml(result.permalink)}" target="_blank" rel="noopener noreferrer">
+        <p class="caption">${escapeHtml(excerpt(post.caption, 150))}</p>
+        <a class="permalink" href="${escapeHtml(post.permalink)}" target="_blank" rel="noopener noreferrer">
           Voir sur Instagram →
         </a>
       </div>
     </article>
   `;
+}
+
+function excerpt(text, length) {
+  const clean = (text ?? "").trim();
+  return clean.length > length ? `${clean.slice(0, length).trim()}…` : clean;
 }
 
 function setStatus(message) {
@@ -69,3 +84,12 @@ function escapeHtml(value) {
   div.textContent = value ?? "";
   return div.innerHTML;
 }
+
+function normalize(text) {
+  return (text ?? "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase();
+}
+
+init();
