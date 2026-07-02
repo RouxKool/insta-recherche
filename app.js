@@ -4,22 +4,15 @@ const statusEl = document.getElementById("status");
 const resultsEl = document.getElementById("results");
 
 const MAX_RESULTS = 3;
-const MAX_SCORE = 0.5; // Fuse score: 0 = match parfait, 1 = aucun rapport
 
-let fuse = null;
+let indexedPosts = [];
 
 async function init() {
   setStatus("Chargement de la base...");
   try {
     const response = await fetch("data/posts.json");
     const { posts } = await response.json();
-    const indexed = posts.map((post) => ({ ...post, search_caption: normalize(post.caption) }));
-    fuse = new Fuse(indexed, {
-      keys: ["search_caption"],
-      includeScore: true,
-      threshold: MAX_SCORE,
-      ignoreLocation: true,
-    });
+    indexedPosts = posts.map((post) => ({ ...post, search_caption: normalize(post.caption) }));
     setStatus(posts.length === 0 ? "Base vide pour l'instant — lance une mise à jour." : "");
   } catch (error) {
     setStatus("Impossible de charger la base de posts.");
@@ -30,14 +23,35 @@ async function init() {
 form.addEventListener("submit", (event) => {
   event.preventDefault();
   const query = input.value.trim();
-  if (!query || !fuse) return;
+  if (!query) return;
 
-  const matches = fuse
-    .search(normalize(query))
-    .filter((match) => match.score <= MAX_SCORE)
-    .slice(0, MAX_RESULTS);
-  renderResults(matches.map((match) => match.item));
+  renderResults(search(query));
 });
+
+/**
+ * Recherche mots-clés (sous-chaîne, insensible aux accents/casse) plutôt que
+ * de la recherche floue générique : sur des légendes longues, un algorithme
+ * fuzzy générique (type Fuse.js) rate des correspondances littérales
+ * évidentes. On priorise les posts qui contiennent la phrase exacte, puis
+ * ceux qui contiennent tous les mots de la requête, triés par date.
+ */
+function search(rawQuery) {
+  const query = normalize(rawQuery);
+  const queryWords = query.split(/\s+/).filter(Boolean);
+  if (queryWords.length === 0) return [];
+
+  return indexedPosts
+    .map((post) => {
+      const isPhraseMatch = post.search_caption.includes(query);
+      const allWordsMatch = queryWords.every((word) => post.search_caption.includes(word));
+      if (!isPhraseMatch && !allWordsMatch) return null;
+      return { post, rank: isPhraseMatch ? 0 : 1 };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.rank - b.rank || new Date(b.post.timestamp) - new Date(a.post.timestamp))
+    .slice(0, MAX_RESULTS)
+    .map((entry) => entry.post);
+}
 
 function renderResults(posts) {
   if (!posts || posts.length === 0) {
