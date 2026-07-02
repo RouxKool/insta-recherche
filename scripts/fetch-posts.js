@@ -1,5 +1,5 @@
 import { writeFile } from "node:fs/promises";
-import { fetchCarouselPosts } from "./lib/instagram.js";
+import { fetchCarouselPosts, fetchReachByPostId } from "./lib/instagram.js";
 
 const DATA_PATH = new URL("../data/posts.json", import.meta.url);
 
@@ -15,6 +15,12 @@ async function main() {
   const allPosts = await fetchCarouselPosts({ accessToken, businessAccountId });
   const posts = allPosts.filter((post) => new Date(post.timestamp) >= MIN_DATE);
   posts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+  console.log(`Récupération du reach pour ${posts.length} post(s)...`);
+  const reachById = await fetchReachByPostId(posts, { accessToken });
+  for (const post of posts) {
+    post.reach = reachById.get(post.id) ?? null;
+  }
 
   const store = { generated_at: new Date().toISOString(), posts };
   await writeFile(DATA_PATH, JSON.stringify(store, null, 2) + "\n", "utf8");

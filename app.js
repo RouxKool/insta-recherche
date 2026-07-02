@@ -1,6 +1,7 @@
 const form = document.getElementById("search-form");
 const input = document.getElementById("query");
 const statusEl = document.getElementById("status");
+const statsEl = document.getElementById("stats");
 const resultsEl = document.getElementById("results");
 
 const MAX_RESULTS = 12;
@@ -67,6 +68,7 @@ function search(rawQuery) {
 function renderResults(allMatches) {
   if (!allMatches || allMatches.length === 0) {
     setStatus("Rien trouvé — ce sujet n'a peut-être pas encore été couvert.");
+    statsEl.hidden = true;
     resultsEl.innerHTML = "";
     return;
   }
@@ -78,7 +80,56 @@ function renderResults(allMatches) {
       ? `${posts.length} résultat${suffix} affiché${suffix} sur ${allMatches.length} trouvés.`
       : `${posts.length} résultat${suffix} trouvé${suffix}.`
   );
+  statsEl.innerHTML = statsHtml(allMatches);
+  statsEl.hidden = false;
   resultsEl.innerHTML = posts.map(cardHtml).join("");
+}
+
+function statsHtml(matches) {
+  const likes = matches.map((p) => p.like_count ?? 0);
+  const comments = matches.map((p) => p.comments_count ?? 0);
+  const reach = matches.map((p) => p.reach).filter((value) => value != null);
+
+  const rows = [
+    ["❤️ Likes", likes],
+    ["💬 Commentaires", comments],
+  ];
+  if (reach.length > 0) {
+    rows.push([`👁️ Reach${reach.length < matches.length ? ` (${reach.length}/${matches.length} posts)` : ""}`, reach]);
+  }
+
+  const cells = rows
+    .map(
+      ([label, values]) => `
+        <div class="stat">
+          <div class="stat-label">${label}</div>
+          <div class="stat-value">${formatNumber(average(values))} <span class="stat-sub">moy.</span></div>
+          <div class="stat-value">${formatNumber(median(values))} <span class="stat-sub">méd.</span></div>
+        </div>
+      `
+    )
+    .join("");
+
+  return `
+    <p class="stats-title">Engagement sur ces ${matches.length} post${matches.length > 1 ? "s" : ""}</p>
+    <div class="stats-grid">${cells}</div>
+  `;
+}
+
+function average(numbers) {
+  if (numbers.length === 0) return 0;
+  return numbers.reduce((sum, n) => sum + n, 0) / numbers.length;
+}
+
+function median(numbers) {
+  if (numbers.length === 0) return 0;
+  const sorted = [...numbers].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+}
+
+function formatNumber(value) {
+  return Math.round(value).toLocaleString("fr-FR");
 }
 
 function cardHtml(post) {
@@ -87,11 +138,18 @@ function cardHtml(post) {
     ? `<img src="${escapeHtml(thumb)}" alt="" loading="lazy" />`
     : `<div class="thumb-placeholder"></div>`;
 
+  const reachHtml = post.reach != null ? `<span>👁️ ${formatNumber(post.reach)}</span>` : "";
+
   return `
     <article class="card">
       ${image}
       <div class="card-body">
         <p class="caption">${escapeHtml(excerpt(post.caption, 150))}</p>
+        <div class="engagement">
+          <span>❤️ ${formatNumber(post.like_count ?? 0)}</span>
+          <span>💬 ${formatNumber(post.comments_count ?? 0)}</span>
+          ${reachHtml}
+        </div>
         <a class="permalink" href="${escapeHtml(post.permalink)}" target="_blank" rel="noopener noreferrer">
           Voir sur Instagram →
         </a>
