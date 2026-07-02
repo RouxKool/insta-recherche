@@ -1,0 +1,17 @@
+{
+  "name": "insta-recherche",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Recherche sémantique dans les contenus Instagram déjà publiés",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "fetch": "node scripts/fetch-and-embed.js",
+    "dev": "wrangler pages dev ."
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}
