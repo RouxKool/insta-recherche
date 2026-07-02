@@ -3,7 +3,7 @@ const input = document.getElementById("query");
 const statusEl = document.getElementById("status");
 const resultsEl = document.getElementById("results");
 
-const MAX_RESULTS = 3;
+const MAX_RESULTS = 12;
 
 let indexedPosts = [];
 
@@ -34,33 +34,50 @@ form.addEventListener("submit", (event) => {
  * fuzzy générique (type Fuse.js) rate des correspondances littérales
  * évidentes. On priorise les posts qui contiennent la phrase exacte, puis
  * ceux qui contiennent tous les mots de la requête, triés par date.
+ *
+ * Plusieurs mots-clés séparés par une virgule sont acceptés (ex.
+ * "doomscroll, scroll compulsif") : un post matche s'il correspond à
+ * n'importe lequel des mots-clés (OR), pour élargir la recherche à
+ * plusieurs reformulations d'un même sujet en une seule requête.
  */
 function search(rawQuery) {
-  const query = normalize(rawQuery);
-  const queryWords = query.split(/\s+/).filter(Boolean);
-  if (queryWords.length === 0) return [];
+  const keywords = rawQuery
+    .split(",")
+    .map((keyword) => normalize(keyword).trim())
+    .filter(Boolean);
+  if (keywords.length === 0) return [];
 
   return indexedPosts
     .map((post) => {
-      const isPhraseMatch = post.search_caption.includes(query);
-      const allWordsMatch = queryWords.every((word) => post.search_caption.includes(word));
-      if (!isPhraseMatch && !allWordsMatch) return null;
-      return { post, rank: isPhraseMatch ? 0 : 1 };
+      let bestRank = null;
+      for (const keyword of keywords) {
+        const words = keyword.split(/\s+/).filter(Boolean);
+        const isPhraseMatch = post.search_caption.includes(keyword);
+        const allWordsMatch = words.every((word) => post.search_caption.includes(word));
+        if (isPhraseMatch) bestRank = 0;
+        else if (allWordsMatch && bestRank === null) bestRank = 1;
+      }
+      return bestRank === null ? null : { post, rank: bestRank };
     })
     .filter(Boolean)
     .sort((a, b) => a.rank - b.rank || new Date(b.post.timestamp) - new Date(a.post.timestamp))
-    .slice(0, MAX_RESULTS)
     .map((entry) => entry.post);
 }
 
-function renderResults(posts) {
-  if (!posts || posts.length === 0) {
+function renderResults(allMatches) {
+  if (!allMatches || allMatches.length === 0) {
     setStatus("Rien trouvé — ce sujet n'a peut-être pas encore été couvert.");
     resultsEl.innerHTML = "";
     return;
   }
 
-  setStatus("");
+  const posts = allMatches.slice(0, MAX_RESULTS);
+  const suffix = posts.length === 1 ? "" : "s";
+  setStatus(
+    allMatches.length > posts.length
+      ? `${posts.length} résultat${suffix} affiché${suffix} sur ${allMatches.length} trouvés.`
+      : `${posts.length} résultat${suffix} trouvé${suffix}.`
+  );
   resultsEl.innerHTML = posts.map(cardHtml).join("");
 }
 
