@@ -2,7 +2,7 @@ name: Mise à jour de la base de posts
 
 on:
   schedule:
-    - cron: "0 5 * * *" # tous les jours à 05:00 UTC
+    - cron: "0 5 */3 * *" # tous les 3 jours à 05:00 UTC
   workflow_dispatch: {}
 
 permissions:
