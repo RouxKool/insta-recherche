@@ -23,16 +23,22 @@ async function main() {
     `${needsEmbedding.length} post(s) à (ré)embedder, ${reusable.length} inchangé(s) réutilisé(s).`
   );
 
-  let embedded = [];
+  const embedded = [];
   if (needsEmbedding.length > 0) {
     const captions = needsEmbedding.map((post) => post.caption);
-    const vectors = await embedDocuments(captions, { apiKey: voyageApiKey });
-    const now = new Date().toISOString();
-    embedded = needsEmbedding.map((post, i) => ({
-      ...post,
-      embedding: vectors[i],
-      last_embedded_at: now,
-    }));
+    await embedDocuments(captions, {
+      apiKey: voyageApiKey,
+      onBatch: async (vectors, offset) => {
+        const now = new Date().toISOString();
+        for (let i = 0; i < vectors.length; i++) {
+          embedded.push({ ...needsEmbedding[offset + i], embedding: vectors[i], last_embedded_at: now });
+        }
+        // Sauvegarde incrémentale : si le job s'arrête en cours de route
+        // (rate limit, timeout...), la progression déjà faite n'est pas perdue.
+        await saveStore(DATA_PATH, buildStore({ embedded, reusable }));
+        console.log(`Progression : ${embedded.length}/${needsEmbedding.length} légende(s) embeddée(s).`);
+      },
+    });
   }
 
   const store = buildStore({ embedded, reusable });

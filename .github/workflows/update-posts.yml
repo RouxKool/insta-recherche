@@ -18,7 +18,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Récupérer et embedder les nouveaux posts
         env:
@@ -28,6 +28,7 @@ jobs:
         run: node scripts/fetch-and-embed.js
 
       - name: Commit et push si data/posts.json a changé
+        if: ${{ !cancelled() }}
         run: |
           if git diff --quiet -- data/posts.json; then
             echo "Aucun changement, rien à committer."
