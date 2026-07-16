@@ -139,11 +139,13 @@ function cardHtml(post) {
     : `<div class="thumb-placeholder"></div>`;
 
   const reachHtml = post.reach != null ? `<span>👁️ ${formatNumber(post.reach)}</span>` : "";
+  const formatLabel = post.media_product_type === "REELS" ? "Reel" : "Carrousel";
 
   return `
     <article class="card">
       ${image}
       <div class="card-body">
+        <span class="format-badge">${formatLabel}</span>
         <p class="caption">${escapeHtml(excerpt(post.caption, 150))}</p>
         <div class="engagement">
           <span>❤️ ${formatNumber(post.like_count ?? 0)}</span>

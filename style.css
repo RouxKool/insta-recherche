@@ -156,6 +156,17 @@ button:hover {
   gap: 0.5rem;
 }
 
+.format-badge {
+  align-self: flex-start;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
 .caption {
   margin: 0;
   font-size: 0.95rem;

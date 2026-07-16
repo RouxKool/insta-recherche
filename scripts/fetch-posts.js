@@ -1,5 +1,5 @@
 import { writeFile } from "node:fs/promises";
-import { fetchCarouselPosts, fetchReachByPostId } from "./lib/instagram.js";
+import { fetchPosts, fetchReachByPostId } from "./lib/instagram.js";
 
 const DATA_PATH = new URL("../data/posts.json", import.meta.url);
 
@@ -11,8 +11,8 @@ async function main() {
   const accessToken = requireEnv("INSTAGRAM_ACCESS_TOKEN");
   const businessAccountId = requireEnv("INSTAGRAM_BUSINESS_ACCOUNT_ID");
 
-  console.log("Récupération des posts Instagram (carrousels)...");
-  const allPosts = await fetchCarouselPosts({ accessToken, businessAccountId });
+  console.log("Récupération des posts Instagram (carrousels et reels)...");
+  const allPosts = await fetchPosts({ accessToken, businessAccountId });
   const posts = allPosts.filter((post) => new Date(post.timestamp) >= MIN_DATE);
   posts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
@@ -25,8 +25,9 @@ async function main() {
   const store = { generated_at: new Date().toISOString(), posts };
   await writeFile(DATA_PATH, JSON.stringify(store, null, 2) + "\n", "utf8");
 
+  const reelCount = posts.filter((post) => post.media_product_type === "REELS").length;
   console.log(
-    `data/posts.json mis à jour avec ${posts.length} carrousel(s) (${allPosts.length - posts.length} exclu(s) avant 2024).`
+    `data/posts.json mis à jour avec ${posts.length} post(s) (${posts.length - reelCount} carrousel(s), ${reelCount} reel(s), ${allPosts.length - posts.length} exclu(s) avant 2024).`
   );
 }
 

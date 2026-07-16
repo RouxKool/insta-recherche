@@ -1,14 +1,15 @@
 const GRAPH_API_VERSION = "v22.0";
 const MEDIA_FIELDS =
-  "id,caption,media_type,media_product_type,permalink,timestamp,like_count,comments_count,children{media_type,media_url,thumbnail_url}";
+  "id,caption,media_type,media_product_type,permalink,timestamp,like_count,comments_count,thumbnail_url,children{media_type,media_url,thumbnail_url}";
 const MAX_THUMBNAILS = 3;
 const INSIGHTS_BATCH_SIZE = 50; // max sub-requêtes par appel batch Graph API
 
 /**
- * Fetches every carousel album post from an Instagram Business account,
- * following cursor-based pagination until exhausted.
+ * Fetches every carousel album and Reel from an Instagram Business account,
+ * following cursor-based pagination until exhausted. Simple single-image
+ * posts are skipped (out of scope for this tool).
  */
-export async function fetchCarouselPosts({ accessToken, businessAccountId }) {
+export async function fetchPosts({ accessToken, businessAccountId }) {
   const posts = [];
   let url = new URL(`https://graph.facebook.com/${GRAPH_API_VERSION}/${businessAccountId}/media`);
   url.searchParams.set("fields", MEDIA_FIELDS);
@@ -26,7 +27,9 @@ export async function fetchCarouselPosts({ accessToken, businessAccountId }) {
     }
 
     for (const item of body.data ?? []) {
-      if (item.media_type !== "CAROUSEL_ALBUM") continue;
+      const isCarousel = item.media_type === "CAROUSEL_ALBUM";
+      const isReel = item.media_product_type === "REELS";
+      if (!isCarousel && !isReel) continue;
       posts.push(toPost(item));
     }
 
@@ -124,13 +127,15 @@ function extractReach(result) {
 
 function toPost(item) {
   const children = item.children?.data ?? [];
-  const thumbnails = children
-    .map((child) => ({
-      media_type: child.media_type,
-      url: child.media_type === "VIDEO" ? child.thumbnail_url : child.media_url,
-    }))
-    .filter((thumb) => Boolean(thumb.url))
-    .slice(0, MAX_THUMBNAILS);
+  const thumbnails = children.length
+    ? children
+        .map((child) => ({
+          media_type: child.media_type,
+          url: child.media_type === "VIDEO" ? child.thumbnail_url : child.media_url,
+        }))
+        .filter((thumb) => Boolean(thumb.url))
+        .slice(0, MAX_THUMBNAILS)
+    : [{ media_type: item.media_type, url: item.thumbnail_url }].filter((thumb) => Boolean(thumb.url));
 
   return {
     id: item.id,
@@ -138,6 +143,7 @@ function toPost(item) {
     permalink: item.permalink,
     timestamp: item.timestamp,
     media_type: item.media_type,
+    media_product_type: item.media_product_type ?? null,
     like_count: item.like_count ?? 0,
     comments_count: item.comments_count ?? 0,
     reach: null,
