@@ -206,3 +206,25 @@ button:hover {
 .permalink:hover {
   text-decoration: underline;
 }
+
+.load-more[hidden] {
+  display: none;
+}
+
+.load-more {
+  display: block;
+  margin: 1.5rem auto 0;
+  padding: 0.6rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--card-bg);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.load-more:hover {
+  background: var(--accent);
+  color: #fff;
+}

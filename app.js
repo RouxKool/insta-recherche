@@ -3,12 +3,15 @@ const input = document.getElementById("query");
 const statusEl = document.getElementById("status");
 const statsEl = document.getElementById("stats");
 const resultsEl = document.getElementById("results");
+const loadMoreBtn = document.getElementById("load-more");
 const filterButtons = document.querySelectorAll(".filter-btn");
 
-const MAX_RESULTS = 12;
+const PAGE_SIZE = 12;
 
 let indexedPosts = [];
 let currentFormat = "all";
+let currentMatches = [];
+let visibleCount = PAGE_SIZE;
 
 async function init() {
   setStatus("Chargement de la base...");
@@ -36,9 +39,15 @@ filterButtons.forEach((btn) => {
   });
 });
 
+loadMoreBtn.addEventListener("click", () => {
+  visibleCount += PAGE_SIZE;
+  renderVisiblePosts();
+});
+
 function runSearch() {
   const query = input.value.trim();
   if (!query) return;
+  visibleCount = PAGE_SIZE;
   renderResults(search(query));
 }
 
@@ -80,23 +89,31 @@ function search(rawQuery) {
 }
 
 function renderResults(allMatches) {
-  if (!allMatches || allMatches.length === 0) {
+  currentMatches = allMatches ?? [];
+
+  if (currentMatches.length === 0) {
     setStatus("Rien trouvé — ce sujet n'a peut-être pas encore été couvert.");
     statsEl.hidden = true;
     resultsEl.innerHTML = "";
+    loadMoreBtn.hidden = true;
     return;
   }
 
-  const posts = allMatches.slice(0, MAX_RESULTS);
+  statsEl.innerHTML = statsHtml(currentMatches);
+  statsEl.hidden = false;
+  renderVisiblePosts();
+}
+
+function renderVisiblePosts() {
+  const posts = currentMatches.slice(0, visibleCount);
   const suffix = posts.length === 1 ? "" : "s";
   setStatus(
-    allMatches.length > posts.length
-      ? `${posts.length} résultat${suffix} affiché${suffix} sur ${allMatches.length} trouvés.`
+    currentMatches.length > posts.length
+      ? `${posts.length} résultat${suffix} affiché${suffix} sur ${currentMatches.length} trouvés.`
       : `${posts.length} résultat${suffix} trouvé${suffix}.`
   );
-  statsEl.innerHTML = statsHtml(allMatches);
-  statsEl.hidden = false;
   resultsEl.innerHTML = posts.map(cardHtml).join("");
+  loadMoreBtn.hidden = posts.length >= currentMatches.length;
 }
 
 function statsHtml(matches) {
