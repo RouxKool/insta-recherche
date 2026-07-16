@@ -3,10 +3,12 @@ const input = document.getElementById("query");
 const statusEl = document.getElementById("status");
 const statsEl = document.getElementById("stats");
 const resultsEl = document.getElementById("results");
+const filterButtons = document.querySelectorAll(".filter-btn");
 
 const MAX_RESULTS = 12;
 
 let indexedPosts = [];
+let currentFormat = "all";
 
 async function init() {
   setStatus("Chargement de la base...");
@@ -23,11 +25,22 @@ async function init() {
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
+  runSearch();
+});
+
+filterButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    currentFormat = btn.dataset.filter;
+    filterButtons.forEach((b) => b.classList.toggle("is-active", b === btn));
+    if (input.value.trim()) runSearch();
+  });
+});
+
+function runSearch() {
   const query = input.value.trim();
   if (!query) return;
-
   renderResults(search(query));
-});
+}
 
 /**
  * Recherche mots-clés (sous-chaîne, insensible aux accents/casse) plutôt que
@@ -49,6 +62,7 @@ function search(rawQuery) {
   if (keywords.length === 0) return [];
 
   return indexedPosts
+    .filter(matchesFormat)
     .map((post) => {
       let bestRank = null;
       for (const keyword of keywords) {
@@ -174,6 +188,12 @@ function escapeHtml(value) {
   const div = document.createElement("div");
   div.textContent = value ?? "";
   return div.innerHTML;
+}
+
+function matchesFormat(post) {
+  if (currentFormat === "reel") return post.media_product_type === "REELS";
+  if (currentFormat === "carousel") return post.media_product_type !== "REELS";
+  return true;
 }
 
 function normalize(text) {
