@@ -3,7 +3,7 @@
   --bg: #fafafa;
   --text: #1a1a1a;
   --muted: #6b6b6b;
-  --accent: #d62976;
+  --accent: #feeb00;
   --card-bg: #ffffff;
   --border: #e5e5e5;
 }
@@ -66,7 +66,7 @@ h1 {
 }
 
 .filter-btn.is-active {
-  color: #fff;
+  color: #1a1a1a;
   background: var(--accent);
   border-color: var(--accent);
 }
@@ -88,7 +88,7 @@ button {
   padding: 0.75rem 1.25rem;
   font-size: 1rem;
   font-weight: 600;
-  color: #fff;
+  color: #1a1a1a;
   background: var(--accent);
   border: none;
   border-radius: 8px;
@@ -226,5 +226,5 @@ button:hover {
 
 .load-more:hover {
   background: var(--accent);
-  color: #fff;
+  color: #1a1a1a;
 }
