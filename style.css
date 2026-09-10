@@ -1,11 +1,14 @@
 :root {
-  color-scheme: light;
-  --bg: #fafafa;
-  --text: #1a1a1a;
-  --muted: #6b6b6b;
+  color-scheme: dark;
+  --bg: #0f0f10;
+  --card-bg: #1a1a1c;
+  --text: #f2f2f2;
+  --muted: #a0a0a5;
+  --border: #2c2c2f;
   --accent: #feeb00;
-  --card-bg: #ffffff;
-  --border: #e5e5e5;
+  --accent-text: #0f0f10; /* texte noir sur le jaune : contraste 17:1, au-delà de WCAG AA */
+  --display: "Archivo", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --body: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
 }
 
 * {
@@ -13,21 +16,55 @@
 }
 
 body {
+  position: relative;
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  min-height: 100vh;
+  font-family: var(--body);
   background: var(--bg);
   color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Grain de fond, comme sur le portail et le dashboard. z-index négatif :
+   sinon la texture vient ternir les aplats jaunes. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url("assets/bg-texture.png");
+  background-repeat: repeat;
+  background-size: 1400px 1400px;
+  opacity: 0.1;
+  pointer-events: none;
+  z-index: -1;
 }
 
 main {
+  position: relative;
+  z-index: 1;
   max-width: 720px;
   margin: 0 auto;
   padding: 3rem 1.5rem 4rem;
 }
 
+.logo {
+  display: block;
+  /* align-self/width auto : garder le ratio natif du logo */
+  width: auto;
+  height: clamp(44px, 7vw, 64px);
+  object-fit: contain;
+  margin-bottom: 1.75rem;
+  animation: rise 0.5s ease both;
+}
+
 h1 {
-  font-size: 1.75rem;
-  margin-bottom: 0.25rem;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(1.6rem, 4vw, 2.1rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  margin: 0 0 0.35rem;
 }
 
 .subtitle {
@@ -36,10 +73,61 @@ h1 {
   margin-bottom: 2rem;
 }
 
+/* ---------- Recherche ---------- */
+
 #search-form {
   display: flex;
   gap: 0.5rem;
   margin-bottom: 0.5rem;
+}
+
+#query {
+  flex: 1;
+  min-width: 0;
+  padding: 0.75rem 1rem;
+  font-family: inherit;
+  font-size: 1rem;
+  color: var(--text);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: border-color 0.18s ease;
+}
+
+#query::placeholder {
+  color: var(--muted);
+}
+
+#query:hover {
+  border-color: #3a3a3e;
+}
+
+#query:focus {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+button {
+  padding: 0.75rem 1.25rem;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent-text);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.18s ease, background-color 0.18s ease;
+}
+
+button:hover {
+  background: #fff23d;
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: none;
 }
 
 .hint {
@@ -50,6 +138,7 @@ h1 {
 
 .filter-group {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
 }
@@ -58,46 +147,32 @@ h1 {
   padding: 0.4rem 0.9rem;
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--text);
+  color: var(--muted);
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 999px;
-  cursor: pointer;
+}
+
+.filter-btn:hover {
+  color: var(--text);
+  background: var(--card-bg);
+  border-color: #3a3a3e;
+  transform: none;
 }
 
 .filter-btn.is-active {
-  color: #1a1a1a;
+  color: var(--accent-text);
   background: var(--accent);
   border-color: var(--accent);
 }
 
-#query {
-  flex: 1;
-  padding: 0.75rem 1rem;
-  font-size: 1rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+.filter-btn.is-active:hover {
+  color: var(--accent-text);
+  background: #fff23d;
+  border-color: #fff23d;
 }
 
-#query:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-
-button {
-  padding: 0.75rem 1.25rem;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #1a1a1a;
-  background: var(--accent);
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-button:hover {
-  opacity: 0.9;
-}
+/* ---------- Statut et statistiques ---------- */
 
 .status {
   color: var(--muted);
@@ -107,15 +182,16 @@ button:hover {
 .stats {
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1rem 1.25rem;
+  border-radius: 16px;
+  padding: 1.1rem 1.35rem;
   margin-bottom: 1.5rem;
 }
 
 .stats-title {
+  font-family: var(--display);
   margin: 0 0 0.75rem;
-  font-weight: 600;
-  font-size: 0.9rem;
+  font-weight: 700;
+  font-size: 0.95rem;
 }
 
 .stats-grid {
@@ -132,7 +208,8 @@ button:hover {
 
 .stat-value {
   font-size: 0.95rem;
-  font-weight: 600;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-sub {
@@ -146,7 +223,10 @@ button:hover {
   gap: 0.75rem;
   font-size: 0.85rem;
   color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }
+
+/* ---------- Résultats ---------- */
 
 .results {
   display: grid;
@@ -158,8 +238,14 @@ button:hover {
   gap: 1rem;
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 16px;
   overflow: hidden;
+  transition: border-color 0.18s ease, transform 0.18s ease;
+}
+
+.card:hover {
+  border-color: #3a3a3e;
+  transform: translateY(-2px);
 }
 
 .card img,
@@ -168,37 +254,40 @@ button:hover {
   height: 120px;
   object-fit: cover;
   flex-shrink: 0;
-  background: var(--border);
+  background: #232326;
 }
 
 .card-body {
-  padding: 0.75rem 1rem 0.75rem 0;
+  padding: 0.85rem 1rem 0.85rem 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 0.5rem;
+  min-width: 0;
 }
 
 .format-badge {
   align-self: flex-start;
-  background: var(--bg);
+  background: transparent;
   border: 1px solid var(--border);
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  padding: 0.15rem 0.5rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.55rem;
   border-radius: 999px;
 }
 
 .caption {
   margin: 0;
   font-size: 0.95rem;
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 .permalink {
   color: var(--accent);
-  font-weight: 600;
+  font-weight: 700;
   text-decoration: none;
   font-size: 0.9rem;
 }
@@ -216,15 +305,73 @@ button:hover {
   margin: 1.5rem auto 0;
   padding: 0.6rem 1.5rem;
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--accent);
-  background: var(--card-bg);
+  background: transparent;
   border: 1px solid var(--accent);
   border-radius: 999px;
   cursor: pointer;
 }
 
 .load-more:hover {
+  color: var(--accent-text);
   background: var(--accent);
-  color: #1a1a1a;
+}
+
+/* ---------- Focus clavier ---------- */
+
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---------- Animations ---------- */
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo {
+    animation: none;
+  }
+
+  .card,
+  button,
+  #query {
+    transition: none;
+  }
+
+  .card:hover,
+  button:hover {
+    transform: none;
+  }
+}
+
+@media (max-width: 520px) {
+  main {
+    padding: 2rem 1.1rem 3rem;
+  }
+
+  .card {
+    flex-direction: column;
+  }
+
+  .card img,
+  .thumb-placeholder {
+    width: 100%;
+    height: 160px;
+  }
+
+  .card-body {
+    padding: 0 1rem 1rem;
+  }
 }
